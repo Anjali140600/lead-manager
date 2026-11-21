@@ -1,4 +1,4 @@
-import type { Lead, LeadInput, LeadResponse, LeadStats } from './types';
+import type { AuthUser, Lead, LeadInput, LeadResponse, LeadStats } from './types';
 
 interface Filters {
   search: string;
@@ -12,6 +12,7 @@ interface Filters {
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...options,
+    credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
   });
 
@@ -49,4 +50,20 @@ export function updateLead(id: number, input: LeadInput) {
 
 export function deleteLead(id: number) {
   return request<void>(`/api/leads/${id}`, { method: 'DELETE' });
+}
+
+export function getCurrentUser() {
+  return request<{ data: AuthUser }>('/api/auth/me');
+}
+
+export function signup(input: { name: string; email: string; password: string }) {
+  return request<{ data: AuthUser }>('/api/auth/signup', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export function login(input: { email: string; password: string }) {
+  return request<{ data: AuthUser }>('/api/auth/login', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export function logout() {
+  return request<void>('/api/auth/logout', { method: 'POST' });
 }

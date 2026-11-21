@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { createLead, deleteLead, getLeads, getStats, updateLead } from './api';
+import { createLead, deleteLead, getCurrentUser, getLeads, getStats, login, logout, signup, updateLead } from './api';
+import { AuthScreen } from './components/AuthScreen';
 import { LeadForm } from './components/LeadForm';
 import { StatusBadge } from './components/StatusBadge';
-import { STATUSES, type Lead, type LeadInput, type LeadStats } from './types';
+import { STATUSES, type AuthUser, type Lead, type LeadInput, type LeadStats } from './types';
 import './styles.css';
 
 const EMPTY_STATS: LeadStats = { Total: 0, New: 0, Contacted: 0, Qualified: 0, Lost: 0 };
 
 export default function App() {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [stats, setStats] = useState<LeadStats>(EMPTY_STATS);
   const [search, setSearch] = useState('');
@@ -26,6 +29,7 @@ export default function App() {
   const [toast, setToast] = useState('');
 
   const loadLeads = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     setError('');
     try {
@@ -38,23 +42,32 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [search, status, sortBy, sortOrder, page]);
+  }, [user, search, status, sortBy, sortOrder, page]);
 
   const loadStats = useCallback(async () => {
+    if (!user) return;
     try {
       const result = await getStats();
       setStats(result.data);
     } catch {
       // The table error already gives the user a retry action.
     }
+  }, [user]);
+
+  useEffect(() => {
+    getCurrentUser()
+      .then((result) => setUser(result.data))
+      .catch(() => setUser(null))
+      .finally(() => setAuthLoading(false));
   }, []);
 
   useEffect(() => {
+    if (!user) return;
     const timer = window.setTimeout(loadLeads, 250);
     return () => window.clearTimeout(timer);
-  }, [loadLeads]);
+  }, [user, loadLeads]);
 
-  useEffect(() => { loadStats(); }, [loadStats]);
+  useEffect(() => { if (user) loadStats(); }, [user, loadStats]);
   useEffect(() => { setPage(1); }, [search, status]);
   useEffect(() => {
     if (!toast) return;
@@ -117,11 +130,34 @@ export default function App() {
 
   const sortMark = (column: string) => sortBy === column ? (sortOrder === 'asc' ? ' ↑' : ' ↓') : '';
 
+  async function handleLogin(input: { email: string; password: string }) {
+    const result = await login(input);
+    setUser(result.data);
+  }
+
+  async function handleSignup(input: { name: string; email: string; password: string }) {
+    const result = await signup(input);
+    setUser(result.data);
+  }
+
+  async function handleLogout() {
+    await logout();
+    setUser(null);
+    setLeads([]);
+    setStats(EMPTY_STATS);
+    setSearch('');
+    setStatus('');
+    setPage(1);
+  }
+
+  if (authLoading) return <div className="auth-loading"><div className="spinner" /><p>Opening LeadFlow…</p></div>;
+  if (!user) return <AuthScreen onLogin={handleLogin} onSignup={handleSignup} />;
+
   return (
     <div className="app-shell">
       <header className="topbar">
         <a className="brand" href="#" aria-label="LeadFlow home"><span>LF</span><strong>LeadFlow</strong></a>
-        <div className="user-chip"><span>AS</span><div><strong>Sales workspace</strong><small>Lead management</small></div></div>
+        <div className="user-menu"><div className="user-chip"><span>{user.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</span><div><strong>{user.name}</strong><small>{user.email}</small></div></div><button onClick={handleLogout}>Log out</button></div>
       </header>
 
       <main>

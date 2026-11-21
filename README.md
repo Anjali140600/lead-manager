@@ -5,6 +5,7 @@ A small, complete lead management application built for the Meru Technosoft Full
 ## Features
 
 - Create and edit leads with name, email, phone, company, source, and status
+- Email/password signup and login with private, account-specific lead data
 - Search by lead name and filter by status
 - Clearly labelled lead statuses and dashboard totals
 - Delete confirmation and friendly success/error states
@@ -72,6 +73,10 @@ The `data` directory is created automatically. Database files and `.env` files a
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | `GET` | `/api/health` | Health check |
+| `POST` | `/api/auth/signup` | Create an account and session |
+| `POST` | `/api/auth/login` | Log in |
+| `POST` | `/api/auth/logout` | End the current session |
+| `GET` | `/api/auth/me` | Get the signed-in user |
 | `GET` | `/api/leads` | List/search/filter/sort/paginate leads |
 | `GET` | `/api/leads/stats` | Counts by status |
 | `POST` | `/api/leads` | Create a lead |
@@ -84,12 +89,13 @@ List query parameters are `search`, `status`, `sortBy`, `sortOrder`, `page`, and
 
 - A lead's email does not need to be globally unique; the same contact may represent separate opportunities.
 - All six lead fields are required so that records stay useful to sales users.
-- Authentication was intentionally left out. The assignment marks it optional, and the time was spent making the required workflow, API validation, responsive UI, and tests solid.
+- Passwords are hashed with Node.js `scrypt`; random session tokens are stored as hashes and sent only through HTTP-only, same-site cookies.
+- Every lead query is scoped to the signed-in user so accounts cannot read or change one another's data.
 - Delete confirmation uses the browser's native confirmation dialog for a familiar, accessible safeguard.
 
 ## With more time
 
-- Add account authentication and user-scoped leads
+- Add password reset and email verification
 - Add database migrations and integration-level frontend tests
 - Add accessible custom confirmation and unsaved-change dialogs
 - Add CSV import/export and lead activity history

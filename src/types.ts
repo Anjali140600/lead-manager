@@ -29,3 +29,9 @@ export interface LeadResponse {
 }
 
 export type LeadStats = Record<LeadStatus, number> & { Total: number };
+
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+}
